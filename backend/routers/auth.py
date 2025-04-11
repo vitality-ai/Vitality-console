@@ -3,6 +3,11 @@ from core.database import get_database
 from services.auth import auth_service
 from models.user import User
 from pydantic import BaseModel
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -10,7 +15,9 @@ class GoogleToken(BaseModel):
     token: str
 
 class APIKeyResponse(BaseModel):
-    api_key: str
+    access_key: str
+    created_at: str
+    status: str
 
 @router.post("/google-login")
 async def google_login(token_data: GoogleToken, db = Depends(get_database)):
@@ -44,15 +51,29 @@ async def google_login(token_data: GoogleToken, db = Depends(get_database)):
     access_token = auth_service.create_access_token({"sub": user_info["email"]})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.post("/generate-api-key")
-async def generate_api_key(current_user: User = Depends(auth_service.get_current_user), db = Depends(get_database)):
-    api_key = auth_service.generate_api_key()
-    await db["users"].update_one(
-        {"email": current_user.email},
-        {"$set": {"api_key": api_key}}
-    )
-    return APIKeyResponse(api_key=api_key)
-
 @router.get("/me")
 async def get_current_user(current_user: User = Depends(auth_service.get_current_user)):
-    return current_user 
+    return current_user
+
+@router.get("/api-keys")
+async def get_api_keys(
+    current_user: User = Depends(auth_service.get_current_user),
+    db = Depends(get_database)
+):
+    """Get the user's API keys."""
+    logger.debug(f"Fetching API keys for user: {current_user.email}")
+    
+    api_keys = await db["api_keys"].find(
+        {"owner_id": current_user.email},
+        {"secret_key": 0}  # Exclude secret key from results
+    ).to_list(length=None)
+    
+    logger.debug(f"Found {len(api_keys)} API keys")
+    
+    return {
+        "api_keys": [{
+            "access_key": key["access_key"],
+            "created_at": key["created_at"].isoformat(),
+            "status": key["status"]
+        } for key in api_keys]
+    } 

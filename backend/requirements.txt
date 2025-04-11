@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+pymongo
+python-dotenv
+pydantic
+boto3
+botocore
+email-validator
+aiofiles
+starlette 

@@ -25,6 +25,9 @@ import {
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import axios, { AxiosError } from 'axios';
 import { alpha } from '@mui/material/styles';
+import Sidebar, { ViewType } from './components/Sidebar';
+import DeveloperSettings from './components/DeveloperSettings';
+import { ApiKey, ApiKeyResponse } from './types';
 
 interface Object {
   key: string;
@@ -48,26 +51,26 @@ const defaultTheme = createTheme();
 
 const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
-      main: '#60a5fa',
-      light: '#93c5fd',
-      dark: '#3b82f6',
+      main: '#3b82f6',
+      light: '#60a5fa',
+      dark: '#2563eb',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#4ade80',
-      light: '#86efac',
-      dark: '#22c55e',
+      main: '#10b981',
+      light: '#34d399',
+      dark: '#059669',
       contrastText: '#ffffff',
     },
     background: {
-      default: '#0f172a',
-      paper: '#1e293b',
+      default: '#f8fafc',
+      paper: '#ffffff',
     },
     text: {
-      primary: '#f8fafc',
-      secondary: '#94a3b8',
+      primary: '#1e293b',
+      secondary: '#64748b',
     },
     error: {
       main: '#ef4444',
@@ -89,7 +92,7 @@ const theme = createTheme({
       light: '#fbbf24',
       dark: '#d97706',
     },
-    divider: 'rgba(148, 163, 184, 0.08)',
+    divider: 'rgba(0, 0, 0, 0.06)',
   },
   typography: {
     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
@@ -172,13 +175,18 @@ const theme = createTheme({
           fontWeight: 600,
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+            boxShadow: '0px 4px 6px -1px rgba(0,0,0,0.08), 0px 2px 4px -1px rgba(0,0,0,0.04)',
           },
         },
         contained: {
-          background: 'linear-gradient(135deg, #3b82f6 0%, #4ade80 100%)',
           '&:hover': {
-            background: 'linear-gradient(135deg, #2563eb 0%, #22c55e 100%)',
+            boxShadow: '0px 4px 6px -1px rgba(0,0,0,0.08), 0px 2px 4px -1px rgba(0,0,0,0.04)',
+          },
+        },
+        containedPrimary: {
+          background: 'linear-gradient(45deg, #3b82f6 0%, #60a5fa 100%)',
+          '&:hover': {
+            background: 'linear-gradient(45deg, #2563eb 0%, #3b82f6 100%)',
           },
         },
       },
@@ -187,14 +195,10 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          backdropFilter: 'blur(20px)',
-          backgroundColor: 'rgba(30, 41, 59, 0.7)',
-          border: '1px solid rgba(148, 163, 184, 0.1)',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          boxShadow: '0px 4px 6px -1px rgba(0,0,0,0.08), 0px 2px 4px -1px rgba(0,0,0,0.04)',
           '&:hover': {
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+            boxShadow: '0px 10px 15px -3px rgba(0,0,0,0.08), 0px 4px 6px -2px rgba(0,0,0,0.04)',
             transform: 'translateY(-2px)',
-            backgroundColor: 'rgba(30, 41, 59, 0.8)',
           },
           transition: 'all 0.3s ease-in-out',
         },
@@ -204,9 +208,6 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          backdropFilter: 'blur(20px)',
-          backgroundColor: 'rgba(30, 41, 59, 0.7)',
-          border: '1px solid rgba(148, 163, 184, 0.1)',
         },
         elevation1: {
           boxShadow: '0px 4px 6px -1px rgba(0,0,0,0.08), 0px 2px 4px -1px rgba(0,0,0,0.04)',
@@ -216,9 +217,9 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          background: 'rgba(15, 23, 42, 0.7)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+          background: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
         },
       },
     },
@@ -226,20 +227,17 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 8,
-          backgroundColor: 'rgba(59, 130, 246, 0.15)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
         },
         bar: {
           borderRadius: 8,
-          background: 'linear-gradient(135deg, #3b82f6 0%, #4ade80 100%)',
+          background: 'linear-gradient(45deg, #3b82f6 0%, #60a5fa 100%)',
         },
       },
     },
     MuiCircularProgress: {
       styleOverrides: {
         root: {
-          color: '#60a5fa',
-        },
-        circle: {
           strokeLinecap: 'round',
         },
       },
@@ -249,7 +247,7 @@ const theme = createTheme({
         root: {
           borderRadius: 8,
           '&:hover': {
-            backgroundColor: 'rgba(59, 130, 246, 0.08)',
+            backgroundColor: 'rgba(59, 130, 246, 0.04)',
           },
         },
       },
@@ -260,7 +258,7 @@ const theme = createTheme({
           '& .MuiTabs-indicator': {
             height: 3,
             borderRadius: '3px 3px 0 0',
-            background: 'linear-gradient(135deg, #3b82f6 0%, #4ade80 100%)',
+            background: 'linear-gradient(45deg, #3b82f6 0%, #60a5fa 100%)',
           },
         },
       },
@@ -271,7 +269,7 @@ const theme = createTheme({
           textTransform: 'none',
           fontWeight: 600,
           '&.Mui-selected': {
-            color: '#60a5fa',
+            color: '#3b82f6',
           },
         },
       },
@@ -280,23 +278,22 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 12,
-          backdropFilter: 'blur(20px)',
         },
         standardSuccess: {
           backgroundColor: 'rgba(34, 197, 94, 0.1)',
-          color: '#4ade80',
+          color: '#16a34a',
         },
         standardError: {
           backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          color: '#f87171',
+          color: '#dc2626',
         },
         standardWarning: {
           backgroundColor: 'rgba(245, 158, 11, 0.1)',
-          color: '#fbbf24',
+          color: '#d97706',
         },
         standardInfo: {
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          color: '#60a5fa',
+          color: '#2563eb',
         },
       },
     },
@@ -314,9 +311,6 @@ const theme = createTheme({
       styleOverrides: {
         paper: {
           borderRadius: 20,
-          backdropFilter: 'blur(20px)',
-          backgroundColor: 'rgba(30, 41, 59, 0.9)',
-          border: '1px solid rgba(148, 163, 184, 0.1)',
         },
       },
     },
@@ -334,10 +328,7 @@ const theme = createTheme({
           '& .MuiOutlinedInput-root': {
             borderRadius: 12,
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#60a5fa',
-            },
-            '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(148, 163, 184, 0.2)',
+              borderColor: '#3b82f6',
             },
           },
         },
@@ -346,7 +337,7 @@ const theme = createTheme({
     MuiAvatar: {
       styleOverrides: {
         root: {
-          background: 'linear-gradient(135deg, #3b82f6 0%, #4ade80 100%)',
+          background: 'linear-gradient(45deg, #3b82f6 0%, #60a5fa 100%)',
         },
       },
     },
@@ -391,13 +382,16 @@ function App() {
   const [activeOperations, setActiveOperations] = useState<Set<string>>(new Set());
   const [tabValue, setTabValue] = useState(0);
   const [totalOperations, setTotalOperations] = useState({ get: 0, put: 0 });
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
 
   useEffect(() => {
     const initializeApp = async () => {
       const token = localStorage.getItem('token');
       if (token) {
         setIsLoggedIn(true);
-        await Promise.all([fetchUserInfo(), fetchBuckets()]);
+        await Promise.all([fetchUserInfo(), fetchBuckets(), fetchApiKeys()]);
       }
       setIsLoading(false);
     };
@@ -421,7 +415,7 @@ function App() {
       
       localStorage.setItem('token', response.data.access_token);
       setIsLoggedIn(true);
-      await Promise.all([fetchUserInfo(), fetchBuckets()]);
+      await Promise.all([fetchUserInfo(), fetchBuckets(), fetchApiKeys()]);
     } catch (error) {
       handleError(error, 'Failed to login');
     }
@@ -448,6 +442,19 @@ function App() {
       setBuckets(response.data);
     } catch (error) {
       handleError(error, 'Failed to fetch buckets');
+    }
+  };
+
+  const fetchApiKeys = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth/api-keys`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setApiKeys(response.data.api_keys);
+    } catch (error) {
+      console.error('Failed to fetch API keys:', error);
+      // Don't show error to user as this is not critical
     }
   };
 
@@ -605,11 +612,32 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setIsLoggedIn(false);
-    setBuckets([]);
-    setUser(null);
+  const handleLogout = async () => {
+    try {
+      localStorage.removeItem('token');
+      
+      setUser(null);
+      setBuckets([]);
+      setActiveOperations(new Set());
+      setUploadProgress({});
+      setTabValue(0);
+      setLogoutDialogOpen(false);
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/logout`, {}, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+      } catch (error) {
+        console.log('Logout cleanup error:', error);
+      }
+
+      window.location.href = '/';
+    } catch (error) {
+      handleError(error, 'Failed to logout');
+    }
   };
 
   const formatSize = (bytes: number) => {
@@ -633,6 +661,64 @@ function App() {
     return Math.round((user.storage_used / user.storage_quota) * 100);
   };
 
+  const handleGenerateApiKey = async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/generate-api-key`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to generate API key');
+      }
+
+      const data = await response.json();
+      const formattedKey: ApiKeyResponse = {
+        access_key: data.access_key,
+        secret_key: data.secret_key,
+        created_at: new Date().toISOString(),
+        status: 'active'
+      };
+      
+      setApiKeys([...apiKeys, formattedKey]);
+      return formattedKey;
+    } catch (error) {
+      console.error('Error generating API key:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteApiKey = async () => {
+    try {
+      const response = await axios.delete(
+        `${process.env.REACT_APP_API_URL}/api/auth/api-keys`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          }
+        }
+      );
+
+      if (response.status !== 200) {
+        throw new Error('Failed to delete API key');
+      }
+
+      setApiKeys([]); // Clear the API keys since user can only have one
+    } catch (error) {
+      console.error('Error deleting API key:', error);
+      throw error;
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setError('Copied to clipboard!');
+    setTimeout(() => setError(null), 3000);
+  };
+
   if (isLoading) {
     return (
       <ThemeProvider theme={theme}>
@@ -654,365 +740,380 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-        <AppBar position="static" color="default" elevation={0} sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}>
-          <Toolbar>
-            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-              <StorageIcon sx={{ color: 'primary.main', mr: 2, fontSize: 32 }} />
-              <Typography variant="h6" color="primary" noWrap>
-                Vitality-AI Storage
-              </Typography>
-            </Box>
-            {isLoggedIn && user && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'primary.main' }}>
-                  {user.email.charAt(0).toUpperCase()}
-                </Avatar>
-                <Typography variant="body2" color="text.secondary">
-                  {user.email}
+      <Box sx={{ display: 'flex' }}>
+        {user && (
+          <Sidebar
+            currentView={currentView}
+            onViewChange={setCurrentView}
+          />
+        )}
+
+        <Box sx={{ flexGrow: 1 }}>
+          <AppBar position="fixed" color="default" elevation={0}>
+            <Toolbar>
+              <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                <StorageIcon sx={{ color: 'primary.main', mr: 2, fontSize: 32 }} />
+                <Typography variant="h6" color="primary" noWrap>
+                  Vitality-AI Storage
                 </Typography>
-                <Tooltip title="Logout">
-                  <IconButton onClick={handleLogout} size="small">
-                    <LogoutIcon />
-                  </IconButton>
-                </Tooltip>
               </Box>
-            )}
-          </Toolbar>
-        </AppBar>
-
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-          <Snackbar 
-            open={!!error} 
-            autoHideDuration={5000} 
-            onClose={() => setError(null)}
-            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-          >
-            <Alert severity="error" onClose={() => setError(null)} variant="filled">
-              {error}
-            </Alert>
-          </Snackbar>
-
-          {!isLoggedIn ? (
-            <Paper sx={{ 
-              p: 4, 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center',
-              maxWidth: 400,
-              mx: 'auto',
-              mt: 8
-            }}>
-              <StorageIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-              <Typography variant="h5" gutterBottom>
-                Welcome to Vitality-AI Storage
-              </Typography>
-              <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-                Secure, scalable object storage for your data needs
-              </Typography>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => handleError(new Error('Login Failed'), 'Login Failed')}
-              />
-            </Paper>
-          ) : (
-            <Box>
-              <Typography variant="h5" gutterBottom>
-                Storage Dashboard
-              </Typography>
-
-              <Box sx={{ mb: 4, mt: 3 }}>
-                <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-                  <Card>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <FolderIcon sx={{ color: 'primary.main', mr: 1 }} />
-                        <Typography variant="h6">Buckets</Typography>
-                      </Box>
-                      <Typography variant="h4">{buckets.length}</Typography>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <FileIcon sx={{ color: 'primary.main', mr: 1 }} />
-                        <Typography variant="h6">Objects</Typography>
-                      </Box>
-                      <Typography variant="h4">{getTotalObjectCount()}</Typography>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <CloudDownloadIcon sx={{ color: 'primary.main', mr: 1 }} />
-                        <Typography variant="h6">GET Operations</Typography>
-                      </Box>
-                      <Typography variant="h4">{totalOperations.get}</Typography>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                        <CloudUploadIcon sx={{ color: 'primary.main', mr: 1 }} />
-                        <Typography variant="h6">PUT Operations</Typography>
-                      </Box>
-                      <Typography variant="h4">{totalOperations.put}</Typography>
-                    </CardContent>
-                  </Card>
-                </Box>
-              </Box>
-
               {user && (
-                <Card sx={{ mb: 4 }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4, alignItems: 'center' }}>
-                      <Box sx={{ position: 'relative', width: 120, height: 120 }}>
-                        <CircularProgress
-                          variant="determinate"
-                          value={100}
-                          size={120}
-                          sx={{ 
-                            position: 'absolute',
-                            color: (theme) => theme.palette.grey[200],
-                          }}
-                        />
-                        <CircularProgress
-                          variant="determinate"
-                          value={getStoragePercentage()}
-                          size={120}
-                          sx={{
-                            position: 'absolute',
-                            color: 'primary.main',
-                          }}
-                        />
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <Typography variant="h6" component="div" color="text.secondary">
-                            {getStoragePercentage()}%
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="h6" gutterBottom>
-                          Storage Usage
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                          {formatSize(user.storage_used)} used of {formatSize(user.storage_quota)}
-                        </Typography>
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={(user.storage_used / user.storage_quota) * 100}
-                          sx={{ 
-                            height: 8, 
-                            borderRadius: 4,
-                            bgcolor: 'grey.100',
-                            '& .MuiLinearProgress-bar': {
-                              borderRadius: 4,
-                            }
-                          }}
-                        />
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              )}
-
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs value={tabValue} onChange={handleTabChange} aria-label="storage tabs">
-                  <Tab label="Buckets" />
-                  <Tab label="Usage" />
-                  <Tab label="Activity" />
-                </Tabs>
-              </Box>
-
-              <TabPanel value={tabValue} index={0}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                  <Typography variant="h6">Your Buckets</Typography>
-                  <Button 
-                    variant="contained" 
-                    startIcon={<AddIcon />}
-                    onClick={() => setCreateBucketOpen(true)}
-                    disabled={activeOperations.size > 0}
-                  >
-                    Create Bucket
-                  </Button>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: 'primary.main' }}>
+                    {user.email.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <Typography variant="body2" color="text.secondary">
+                    {user.email}
+                  </Typography>
+                  <Tooltip title="Logout">
+                    <IconButton onClick={() => setLogoutDialogOpen(true)} size="small">
+                      <LogoutIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
+              )}
+            </Toolbar>
+          </AppBar>
 
-                {buckets.length === 0 ? (
-                  <Paper sx={{ p: 4, textAlign: 'center' }}>
-                    <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                    <Typography variant="h6" gutterBottom>
-                      No buckets yet
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Create your first bucket to start storing files
-                    </Typography>
-                    <Button 
-                      variant="contained" 
-                      startIcon={<AddIcon />}
-                      onClick={() => setCreateBucketOpen(true)}
-                    >
-                      Create Bucket
-                    </Button>
-                  </Paper>
-                ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {buckets.map((bucket) => (
-                      <Card key={bucket.name}>
+          <Box
+            component="main"
+            sx={{
+              flexGrow: 1,
+              p: 3,
+              mt: 8,
+              ml: user ? '240px' : 0,
+            }}
+          >
+            {!user ? (
+              <Paper sx={{ 
+                p: 4, 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center',
+                maxWidth: 400,
+                mx: 'auto',
+                mt: 8
+              }}>
+                <StorageIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+                <Typography variant="h5" gutterBottom>
+                  Welcome to Vitality-AI Storage
+                </Typography>
+                <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
+                  Secure, scalable object storage for your data needs
+                </Typography>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => handleError(new Error('Login Failed'), 'Login Failed')}
+                />
+              </Paper>
+            ) : (
+              currentView === 'dashboard' ? (
+                <Box>
+                  <Typography variant="h5" gutterBottom>
+                    Storage Dashboard
+                  </Typography>
+
+                  <Box sx={{ mb: 4, mt: 3 }}>
+                    <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+                      <Card>
                         <CardContent>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6">{bucket.name}</Typography>
-                            <Box>
-                              <input
-                                type="file"
-                                id={`upload-${bucket.name}`}
-                                style={{ display: 'none' }}
-                                onChange={(e) => e.target.files && handleFileUpload(bucket.name, e.target.files[0])}
-                                disabled={activeOperations.has(`upload-${bucket.name}`)}
-                              />
-                              <label htmlFor={`upload-${bucket.name}`}>
-                                <Tooltip title="Upload file">
-                                  <IconButton 
-                                    component="span" 
-                                    color="primary"
-                                    disabled={activeOperations.has(`upload-${bucket.name}`)}
-                                  >
-                                    <UploadIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              </label>
-                              <Tooltip title="Delete bucket">
-                                <IconButton 
-                                  color="error" 
-                                  onClick={() => handleDeleteBucket(bucket.name)}
-                                  disabled={activeOperations.has(`delete-bucket-${bucket.name}`)}
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <FolderIcon sx={{ color: 'primary.main', mr: 1 }} />
+                            <Typography variant="h6">Buckets</Typography>
                           </Box>
-
-                          {Object.entries(uploadProgress).map(([key, progress]) => {
-                            if (key.startsWith(`upload-${bucket.name}`)) {
-                              return (
-                                <Box sx={{ mb: 2 }}>
-                                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                                    Uploading...
-                                  </Typography>
-                                  <LinearProgress 
-                                    key={key}
-                                    variant="determinate" 
-                                    value={progress} 
-                                    sx={{ 
-                                      height: 6, 
-                                      borderRadius: 3,
-                                      bgcolor: 'grey.100',
-                                      '& .MuiLinearProgress-bar': {
-                                        borderRadius: 3,
-                                      }
-                                    }} 
-                                  />
-                                </Box>
-                              );
-                            }
-                            return null;
-                          })}
-
-                          {bucket.objects.length === 0 ? (
-                            <Box sx={{ textAlign: 'center', py: 4 }}>
-                              <Typography variant="body2" color="text.secondary">
-                                No files in this bucket
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <List>
-                              {bucket.objects.map((obj) => (
-                                <React.Fragment key={obj.key}>
-                                  <ListItem
-                                    secondaryAction={
-                                      <Box>
-                                        <Tooltip title="Download file">
-                                          <IconButton 
-                                            edge="end" 
-                                            onClick={() => handleDownloadObject(bucket.name, obj.key)}
-                                            disabled={activeOperations.has(`download-${bucket.name}-${obj.key}`)}
-                                            sx={{ mr: 1 }}
-                                          >
-                                            {activeOperations.has(`download-${bucket.name}-${obj.key}`) ? (
-                                              <CircularProgress size={24} />
-                                            ) : (
-                                              <DownloadIcon />
-                                            )}
-                                          </IconButton>
-                                        </Tooltip>
-                                        <Tooltip title="Delete file">
-                                          <IconButton 
-                                            edge="end" 
-                                            onClick={() => handleDeleteObject(bucket.name, obj.key)}
-                                            disabled={activeOperations.has(`delete-${bucket.name}-${obj.key}`)}
-                                            color="error"
-                                          >
-                                            {activeOperations.has(`delete-${bucket.name}-${obj.key}`) ? (
-                                              <CircularProgress size={24} />
-                                            ) : (
-                                              <DeleteIcon />
-                                            )}
-                                          </IconButton>
-                                        </Tooltip>
-                                      </Box>
-                                    }
-                                  >
-                                    <ListItemText
-                                      primary={obj.key}
-                                      secondary={
-                                        <Typography variant="body2" color="text.secondary">
-                                          {formatSize(obj.size)} • {new Date(obj.created_at).toLocaleString()}
-                                        </Typography>
-                                      }
-                                    />
-                                  </ListItem>
-                                  <Divider />
-                                </React.Fragment>
-                              ))}
-                            </List>
-                          )}
+                          <Typography variant="h4">{buckets.length}</Typography>
                         </CardContent>
                       </Card>
-                    ))}
+
+                      <Card>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <FileIcon sx={{ color: 'primary.main', mr: 1 }} />
+                            <Typography variant="h6">Objects</Typography>
+                          </Box>
+                          <Typography variant="h4">{getTotalObjectCount()}</Typography>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <CloudDownloadIcon sx={{ color: 'primary.main', mr: 1 }} />
+                            <Typography variant="h6">GET Operations</Typography>
+                          </Box>
+                          <Typography variant="h4">{totalOperations.get}</Typography>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <CloudUploadIcon sx={{ color: 'primary.main', mr: 1 }} />
+                            <Typography variant="h6">PUT Operations</Typography>
+                          </Box>
+                          <Typography variant="h4">{totalOperations.put}</Typography>
+                        </CardContent>
+                      </Card>
+                    </Box>
                   </Box>
-                )}
-              </TabPanel>
 
-              <TabPanel value={tabValue} index={1}>
-                <Typography variant="h6" gutterBottom>
-                  Storage Usage Details
-                </Typography>
-                {/* Add detailed storage usage charts/graphs here */}
-              </TabPanel>
+                  {user && (
+                    <Card sx={{ mb: 4 }}>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4, alignItems: 'center' }}>
+                          <Box sx={{ position: 'relative', width: 120, height: 120 }}>
+                            <CircularProgress
+                              variant="determinate"
+                              value={100}
+                              size={120}
+                              sx={{ 
+                                position: 'absolute',
+                                color: (theme) => theme.palette.grey[200],
+                              }}
+                            />
+                            <CircularProgress
+                              variant="determinate"
+                              value={getStoragePercentage()}
+                              size={120}
+                              sx={{
+                                position: 'absolute',
+                                color: 'primary.main',
+                              }}
+                            />
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Typography variant="h6" component="div" color="text.secondary">
+                                {getStoragePercentage()}%
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="h6" gutterBottom>
+                              Storage Usage
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              {formatSize(user.storage_used)} used of {formatSize(user.storage_quota)}
+                            </Typography>
+                            <LinearProgress 
+                              variant="determinate" 
+                              value={(user.storage_used / user.storage_quota) * 100}
+                              sx={{ 
+                                height: 8, 
+                                borderRadius: 4,
+                                bgcolor: 'grey.100',
+                                '& .MuiLinearProgress-bar': {
+                                  borderRadius: 4,
+                                }
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  )}
 
-              <TabPanel value={tabValue} index={2}>
-                <Typography variant="h6" gutterBottom>
-                  Recent Activity
-                </Typography>
-                {/* Add activity log/history here */}
-              </TabPanel>
-            </Box>
-          )}
-        </Container>
+                  <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                    <Tabs value={tabValue} onChange={handleTabChange} aria-label="storage tabs">
+                      <Tab label="Buckets" />
+                      <Tab label="Usage" />
+                      <Tab label="Activity" />
+                    </Tabs>
+                  </Box>
+
+                  <TabPanel value={tabValue} index={0}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                      <Typography variant="h6">Your Buckets</Typography>
+                      <Button 
+                        variant="contained" 
+                        startIcon={<AddIcon />}
+                        onClick={() => setCreateBucketOpen(true)}
+                        disabled={activeOperations.size > 0}
+                      >
+                        Create Bucket
+                      </Button>
+                    </Box>
+
+                    {buckets.length === 0 ? (
+                      <Paper sx={{ p: 4, textAlign: 'center' }}>
+                        <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                        <Typography variant="h6" gutterBottom>
+                          No buckets yet
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          Create your first bucket to start storing files
+                        </Typography>
+                        <Button 
+                          variant="contained" 
+                          startIcon={<AddIcon />}
+                          onClick={() => setCreateBucketOpen(true)}
+                        >
+                          Create Bucket
+                        </Button>
+                      </Paper>
+                    ) : (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {buckets.map((bucket) => (
+                          <Card key={bucket.name}>
+                            <CardContent>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="h6">{bucket.name}</Typography>
+                                <Box>
+                                  <input
+                                    type="file"
+                                    id={`upload-${bucket.name}`}
+                                    style={{ display: 'none' }}
+                                    onChange={(e) => e.target.files && handleFileUpload(bucket.name, e.target.files[0])}
+                                    disabled={activeOperations.has(`upload-${bucket.name}`)}
+                                  />
+                                  <label htmlFor={`upload-${bucket.name}`}>
+                                    <Tooltip title="Upload file">
+                                      <IconButton 
+                                        component="span" 
+                                        color="primary"
+                                        disabled={activeOperations.has(`upload-${bucket.name}`)}
+                                      >
+                                        <UploadIcon />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </label>
+                                  <Tooltip title="Delete bucket">
+                                    <IconButton 
+                                      color="error" 
+                                      onClick={() => handleDeleteBucket(bucket.name)}
+                                      disabled={activeOperations.has(`delete-bucket-${bucket.name}`)}
+                                    >
+                                      <DeleteIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Box>
+                              </Box>
+
+                              {Object.entries(uploadProgress).map(([key, progress]) => {
+                                if (key.startsWith(`upload-${bucket.name}`)) {
+                                  return (
+                                    <Box sx={{ mb: 2 }}>
+                                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        Uploading...
+                                      </Typography>
+                                      <LinearProgress 
+                                        key={key}
+                                        variant="determinate" 
+                                        value={progress} 
+                                        sx={{ 
+                                          height: 6, 
+                                          borderRadius: 3,
+                                          bgcolor: 'grey.100',
+                                          '& .MuiLinearProgress-bar': {
+                                            borderRadius: 3,
+                                          }
+                                        }} 
+                                      />
+                                    </Box>
+                                  );
+                                }
+                                return null;
+                              })}
+
+                              {bucket.objects.length === 0 ? (
+                                <Box sx={{ textAlign: 'center', py: 4 }}>
+                                  <Typography variant="body2" color="text.secondary">
+                                    No files in this bucket
+                                  </Typography>
+                                </Box>
+                              ) : (
+                                <List>
+                                  {bucket.objects.map((obj) => (
+                                    <React.Fragment key={obj.key}>
+                                      <ListItem
+                                        secondaryAction={
+                                          <Box>
+                                            <Tooltip title="Download file">
+                                              <IconButton 
+                                                edge="end" 
+                                                onClick={() => handleDownloadObject(bucket.name, obj.key)}
+                                                disabled={activeOperations.has(`download-${bucket.name}-${obj.key}`)}
+                                                sx={{ mr: 1 }}
+                                              >
+                                                {activeOperations.has(`download-${bucket.name}-${obj.key}`) ? (
+                                                  <CircularProgress size={24} />
+                                                ) : (
+                                                  <DownloadIcon />
+                                                )}
+                                              </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Delete file">
+                                              <IconButton 
+                                                edge="end" 
+                                                onClick={() => handleDeleteObject(bucket.name, obj.key)}
+                                                disabled={activeOperations.has(`delete-${bucket.name}-${obj.key}`)}
+                                                color="error"
+                                              >
+                                                {activeOperations.has(`delete-${bucket.name}-${obj.key}`) ? (
+                                                  <CircularProgress size={24} />
+                                                ) : (
+                                                  <DeleteIcon />
+                                                )}
+                                              </IconButton>
+                                            </Tooltip>
+                                          </Box>
+                                        }
+                                      >
+                                        <ListItemText
+                                          primary={obj.key}
+                                          secondary={
+                                            <Typography variant="body2" color="text.secondary">
+                                              {formatSize(obj.size)} • {new Date(obj.created_at).toLocaleString()}
+                                            </Typography>
+                                          }
+                                        />
+                                      </ListItem>
+                                      <Divider />
+                                    </React.Fragment>
+                                  ))}
+                                </List>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </Box>
+                    )}
+                  </TabPanel>
+
+                  <TabPanel value={tabValue} index={1}>
+                    <Typography variant="h6" gutterBottom>
+                      Storage Usage Details
+                    </Typography>
+                    {/* Add detailed storage usage charts/graphs here */}
+                  </TabPanel>
+
+                  <TabPanel value={tabValue} index={2}>
+                    <Typography variant="h6" gutterBottom>
+                      Recent Activity
+                    </Typography>
+                    {/* Add activity log/history here */}
+                  </TabPanel>
+                </Box>
+              ) : (
+                <DeveloperSettings 
+                  apiKeys={apiKeys}
+                  onGenerateKey={handleGenerateApiKey}
+                  onDeleteKey={handleDeleteApiKey}
+                  onCopyToClipboard={copyToClipboard}
+                />
+              )
+            )}
+          </Box>
+        </Box>
       </Box>
 
       <Dialog 
@@ -1048,6 +1149,33 @@ function App() {
             disabled={!newBucketName.trim() || !/^[a-z0-9-]+$/.test(newBucketName)}
           >
             Create Bucket
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Confirm Logout</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to log out? You will need to log in again to access your storage.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setLogoutDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleLogout}
+            variant="contained"
+            color="primary"
+            startIcon={<LogoutIcon />}
+          >
+            Logout
           </Button>
         </DialogActions>
       </Dialog>

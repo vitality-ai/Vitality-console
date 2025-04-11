@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.database import connect_to_mongo, close_mongo_connection
-from routers import auth, buckets, objects
+from routers import auth, buckets, objects, api_keys
 
 app = FastAPI(title="Object Storage Service")
 
@@ -27,6 +27,7 @@ async def shutdown_event():
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(buckets.router, prefix="/api/buckets", tags=["buckets"])
 app.include_router(objects.router, prefix="/api/objects", tags=["objects"])
+app.include_router(api_keys.router, prefix="/api/auth", tags=["api-keys"])
 
 @app.get("/")
 async def root():
