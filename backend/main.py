@@ -2,8 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.database import connect_to_mongo, close_mongo_connection
 from routers import auth, buckets, objects, api_keys
+from starlette.middleware.wsgi import WSGIMiddleware
+from s3RouteHandler.server import app as flask_app
+
 
 app = FastAPI(title="Object Storage Service")
+
+app.mount("/", WSGIMiddleware(flask_app))
 
 # CORS middleware
 app.add_middleware(
