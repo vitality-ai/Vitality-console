@@ -146,11 +146,11 @@ The application will be available at:
 
 ## Testing S3-Compatible APIs
 
-Follow these steps to configure and test against the Versatility Object Storage (CIAOS) endpoints:
+Follow these steps to configure and test against the Vitality Object Storage (CIAOS) endpoints:
 
 ### 1. Generate Credentials
 
-1. Log into the Versality Console.
+1. Log into the Vitality Console.
 2. Generate your Security Key and Secret.
 
 ### 2. Configure Your Client
@@ -186,7 +186,7 @@ python s3_operations.py --action get --bucket my-bucket --key object-key
 python s3_operations.py --action delete --bucket my-bucket --key object-key
 ```
 
-> **Note:** If your application already uses an S3 client, simply update your existing client’s credentials and endpoint to point to the Versatility Object Storage:
+> **Note:** If your application already uses an S3 client, simply update your existing client’s credentials and endpoint to point to the Vitality Object Storage:
 >
 > ```python
 > s3_client = boto3.client(
