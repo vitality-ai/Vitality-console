@@ -144,6 +144,60 @@ The application will be available at:
    - Check if the frontend URL is added to the backend's CORS configuration
    - Verify the API URL in frontend `.env` file
 
+## Testing S3-Compatible APIs
+
+Follow these steps to configure and test against the Vitality Object Storage (CIAOS) endpoints:
+
+### 1. Generate Credentials
+
+1. Log into the Vitality Console.
+2. Generate your Security Key and Secret.
+
+### 2. Configure Your Client
+
+* Open `s3_operations.py` and `sigv4_middleware.py`.
+
+* Update the placeholders for your **Security Key** and **Secret**:
+
+  ```python
+  ACCESS_KEY = '<your-security-key>'
+  SECRET_KEY = '<your-secret>'
+  ```
+
+* Open `storageserviceclient.py` and update the **IP address** and **port** of the deployed CIAOS Object Storage:
+
+  ```python
+  ENDPOINT = 'http://<storage-ip>:<port>'
+  ```
+
+### 3. Using the Client
+
+With the above configuration in place, you can use `s3_operations.py` as your S3 client to:
+
+* **Add** objects
+* **Get** objects
+* **Delete** objects
+
+#### Example Usage
+
+```bash
+python s3_operations.py --action add --bucket my-bucket --file /path/to/object
+python s3_operations.py --action get --bucket my-bucket --key object-key
+python s3_operations.py --action delete --bucket my-bucket --key object-key
+```
+
+> **Note:** If your application already uses an S3 client, simply update your existing client’s credentials and endpoint to point to the Vitality Object Storage:
+>
+> ```python
+> s3_client = boto3.client(
+>     's3',
+>     aws_access_key_id='<your-security-key>',
+>     aws_secret_access_key='<your-secret>',
+>     endpoint_url='http://<storage-ip>:<port>'
+> )
+> ```
+
+
 ## Security Notes
 
 - Never commit `.env` files or sensitive credentials
