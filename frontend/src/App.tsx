@@ -1,101 +1,97 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Container, Box, Typography, Button, TextField, 
+import {
+  Box, Typography, Button, TextField,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  LinearProgress, IconButton, List, ListItem, ListItemText,
-  ListItemSecondaryAction, Divider, Alert, Snackbar, CircularProgress,
+  LinearProgress, IconButton, Alert, CircularProgress,
   AppBar, Toolbar, Paper, Card, CardContent,
-  Tooltip, Avatar, useTheme, ThemeProvider, createTheme,
-  Tab, Tabs
+  Tooltip, Avatar, ThemeProvider, createTheme,
+  Tab, Tabs, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
-import Grid from '@mui/material/Grid';
-import { 
-  Delete as DeleteIcon, 
-  Upload as UploadIcon, 
-  Download as DownloadIcon,
+import {
   Storage as StorageIcon,
-  Add as AddIcon,
   Logout as LogoutIcon,
-  CloudUpload as CloudUploadIcon,
   Folder as FolderIcon,
   InsertDriveFile as FileIcon,
-  Speed as SpeedIcon,
-  CloudDownload as CloudDownloadIcon
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import axios, { AxiosError } from 'axios';
-import { alpha } from '@mui/material/styles';
 import Sidebar, { ViewType } from './components/Sidebar';
 import DeveloperSettings from './components/DeveloperSettings';
 import { ApiKey, ApiKeyResponse } from './types';
 
-interface Object {
-  key: string;
-  size: number;
-  content_type: string;
-  created_at: string;
+const hasGoogleAuth = Boolean(process.env.REACT_APP_GOOGLE_CLIENT_ID?.trim());
+
+interface BucketSummary {
+  name: string;
+  object_count: number;
+  total_size: number;
+  type?: string;
+  access_policies?: string | null;
 }
 
-interface Bucket {
-  name: string;
-  objects: Object[];
+interface UsageSummary {
+  storage_used: number;
+  storage_quota: number;
+  object_count: number;
 }
 
 interface User {
   email: string;
-  storage_used: number;
-  storage_quota: number;
+  full_name?: string;
+  picture?: string;
 }
 
 const defaultTheme = createTheme();
 
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
     primary: {
-      main: '#3b82f6',
-      light: '#60a5fa',
-      dark: '#2563eb',
-      contrastText: '#ffffff',
+      main: '#22d3ee',
+      light: '#67e8f9',
+      dark: '#06b6d4',
+      contrastText: '#0c1222',
     },
     secondary: {
-      main: '#10b981',
-      light: '#34d399',
-      dark: '#059669',
-      contrastText: '#ffffff',
+      main: '#a78bfa',
+      light: '#c4b5fd',
+      dark: '#8b5cf6',
+      contrastText: '#0c1222',
     },
     background: {
-      default: '#f8fafc',
-      paper: '#ffffff',
+      default: '#0c1222',
+      paper: 'rgba(18, 24, 42, 0.85)',
     },
     text: {
-      primary: '#1e293b',
-      secondary: '#64748b',
+      primary: '#e2e8f0',
+      secondary: '#94a3b8',
+      disabled: '#64748b',
     },
     error: {
-      main: '#ef4444',
-      light: '#f87171',
-      dark: '#dc2626',
+      main: '#f87171',
+      light: '#fca5a5',
+      dark: '#ef4444',
     },
     success: {
-      main: '#22c55e',
-      light: '#4ade80',
-      dark: '#16a34a',
+      main: '#34d399',
+      light: '#6ee7b7',
+      dark: '#10b981',
     },
     info: {
-      main: '#3b82f6',
-      light: '#60a5fa',
-      dark: '#2563eb',
+      main: '#22d3ee',
+      light: '#67e8f9',
+      dark: '#06b6d4',
     },
     warning: {
-      main: '#f59e0b',
-      light: '#fbbf24',
-      dark: '#d97706',
+      main: '#fbbf24',
+      light: '#fcd34d',
+      dark: '#f59e0b',
     },
-    divider: 'rgba(0, 0, 0, 0.06)',
+    divider: 'rgba(148, 163, 184, 0.12)',
   },
   typography: {
-    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    fontFamily: '"Outfit", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     h1: {
       fontSize: '2.5rem',
       fontWeight: 600,
@@ -170,23 +166,33 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 10,
           textTransform: 'none',
           fontWeight: 600,
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0px 4px 6px -1px rgba(0,0,0,0.08), 0px 2px 4px -1px rgba(0,0,0,0.04)',
+            boxShadow: '0 0 20px rgba(34, 211, 238, 0.25)',
           },
         },
         contained: {
           '&:hover': {
-            boxShadow: '0px 4px 6px -1px rgba(0,0,0,0.08), 0px 2px 4px -1px rgba(0,0,0,0.04)',
+            boxShadow: '0 0 24px rgba(34, 211, 238, 0.35)',
           },
         },
         containedPrimary: {
-          background: 'linear-gradient(45deg, #3b82f6 0%, #60a5fa 100%)',
+          background: 'linear-gradient(135deg, #06b6d4 0%, #22d3ee 50%, #67e8f9 100%)',
+          color: '#0c1222',
           '&:hover': {
-            background: 'linear-gradient(45deg, #2563eb 0%, #3b82f6 100%)',
+            background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #22d3ee 100%)',
+            boxShadow: '0 0 28px rgba(34, 211, 238, 0.4)',
+          },
+        },
+        containedSecondary: {
+          background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 50%, #c4b5fd 100%)',
+          color: '#0c1222',
+          '&:hover': {
+            background: 'linear-gradient(135deg, #6d28d9 0%, #8b5cf6 50%, #a78bfa 100%)',
+            boxShadow: '0 0 24px rgba(167, 139, 250, 0.35)',
           },
         },
       },
@@ -195,12 +201,16 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          boxShadow: '0px 4px 6px -1px rgba(0,0,0,0.08), 0px 2px 4px -1px rgba(0,0,0,0.04)',
+          background: 'rgba(18, 24, 42, 0.6)',
+          border: '1px solid rgba(34, 211, 238, 0.08)',
+          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.2)',
+          backdropFilter: 'blur(8px)',
+          transition: 'all 0.3s ease',
           '&:hover': {
-            boxShadow: '0px 10px 15px -3px rgba(0,0,0,0.08), 0px 4px 6px -2px rgba(0,0,0,0.04)',
+            borderColor: 'rgba(34, 211, 238, 0.2)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 40px rgba(34, 211, 238, 0.06)',
             transform: 'translateY(-2px)',
           },
-          transition: 'all 0.3s ease-in-out',
         },
       },
     },
@@ -208,18 +218,22 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
+          background: 'rgba(18, 24, 42, 0.75)',
+          border: '1px solid rgba(148, 163, 184, 0.08)',
+          backdropFilter: 'blur(12px)',
         },
         elevation1: {
-          boxShadow: '0px 4px 6px -1px rgba(0,0,0,0.08), 0px 2px 4px -1px rgba(0,0,0,0.04)',
+          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.25)',
         },
       },
     },
     MuiAppBar: {
       styleOverrides: {
         root: {
-          background: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(8px)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          background: 'rgba(12, 18, 34, 0.85)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(34, 211, 238, 0.1)',
+          boxShadow: '0 0 40px rgba(0, 0, 0, 0.2)',
         },
       },
     },
@@ -227,11 +241,12 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 8,
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          backgroundColor: 'rgba(34, 211, 238, 0.12)',
         },
         bar: {
           borderRadius: 8,
-          background: 'linear-gradient(45deg, #3b82f6 0%, #60a5fa 100%)',
+          background: 'linear-gradient(90deg, #06b6d4 0%, #22d3ee 50%, #a78bfa 100%)',
+          boxShadow: '0 0 12px rgba(34, 211, 238, 0.4)',
         },
       },
     },
@@ -239,15 +254,32 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           strokeLinecap: 'round',
+          color: '#22d3ee',
         },
       },
     },
     MuiListItem: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 10,
           '&:hover': {
-            backgroundColor: 'rgba(59, 130, 246, 0.04)',
+            backgroundColor: 'rgba(34, 211, 238, 0.06)',
+          },
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 10,
+          '&:hover': {
+            backgroundColor: 'rgba(34, 211, 238, 0.08)',
+          },
+          '&.Mui-selected': {
+            backgroundColor: 'rgba(34, 211, 238, 0.12)',
+            '&:hover': {
+              backgroundColor: 'rgba(34, 211, 238, 0.16)',
+            },
           },
         },
       },
@@ -258,7 +290,8 @@ const theme = createTheme({
           '& .MuiTabs-indicator': {
             height: 3,
             borderRadius: '3px 3px 0 0',
-            background: 'linear-gradient(45deg, #3b82f6 0%, #60a5fa 100%)',
+            background: 'linear-gradient(90deg, #22d3ee 0%, #a78bfa 100%)',
+            boxShadow: '0 0 12px rgba(34, 211, 238, 0.5)',
           },
         },
       },
@@ -269,7 +302,7 @@ const theme = createTheme({
           textTransform: 'none',
           fontWeight: 600,
           '&.Mui-selected': {
-            color: '#3b82f6',
+            color: '#22d3ee',
           },
         },
       },
@@ -278,32 +311,39 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 12,
+          border: '1px solid',
         },
         standardSuccess: {
-          backgroundColor: 'rgba(34, 197, 94, 0.1)',
-          color: '#16a34a',
+          backgroundColor: 'rgba(52, 211, 153, 0.1)',
+          borderColor: 'rgba(52, 211, 153, 0.3)',
+          color: '#34d399',
         },
         standardError: {
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          color: '#dc2626',
+          backgroundColor: 'rgba(248, 113, 113, 0.1)',
+          borderColor: 'rgba(248, 113, 113, 0.3)',
+          color: '#f87171',
         },
         standardWarning: {
-          backgroundColor: 'rgba(245, 158, 11, 0.1)',
-          color: '#d97706',
+          backgroundColor: 'rgba(251, 191, 36, 0.1)',
+          borderColor: 'rgba(251, 191, 36, 0.3)',
+          color: '#fbbf24',
         },
         standardInfo: {
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          color: '#2563eb',
+          backgroundColor: 'rgba(34, 211, 238, 0.1)',
+          borderColor: 'rgba(34, 211, 238, 0.3)',
+          color: '#22d3ee',
         },
       },
     },
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: 'rgba(15, 23, 42, 0.9)',
-          borderRadius: 8,
+          backgroundColor: 'rgba(18, 24, 42, 0.95)',
+          border: '1px solid rgba(34, 211, 238, 0.2)',
+          borderRadius: 10,
           fontSize: '0.75rem',
           padding: '8px 12px',
+          boxShadow: '0 0 20px rgba(0, 0, 0, 0.3)',
         },
       },
     },
@@ -311,6 +351,9 @@ const theme = createTheme({
       styleOverrides: {
         paper: {
           borderRadius: 20,
+          background: 'linear-gradient(180deg, rgba(18, 24, 42, 0.98) 0%, rgba(12, 18, 34, 0.98) 100%)',
+          border: '1px solid rgba(34, 211, 238, 0.15)',
+          boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4), 0 0 60px rgba(34, 211, 238, 0.08)',
         },
       },
     },
@@ -328,7 +371,11 @@ const theme = createTheme({
           '& .MuiOutlinedInput-root': {
             borderRadius: 12,
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#3b82f6',
+              borderColor: 'rgba(34, 211, 238, 0.4)',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: '#22d3ee',
+              boxShadow: '0 0 0 1px rgba(34, 211, 238, 0.2)',
             },
           },
         },
@@ -337,7 +384,8 @@ const theme = createTheme({
     MuiAvatar: {
       styleOverrides: {
         root: {
-          background: 'linear-gradient(45deg, #3b82f6 0%, #60a5fa 100%)',
+          background: 'linear-gradient(135deg, #06b6d4 0%, #a78bfa 100%)',
+          boxShadow: '0 0 20px rgba(34, 211, 238, 0.3)',
         },
       },
     },
@@ -372,31 +420,46 @@ function TabPanel(props: TabPanelProps) {
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [buckets, setBuckets] = useState<Bucket[]>([]);
+  const [buckets, setBuckets] = useState<BucketSummary[]>([]);
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [newBucketName, setNewBucketName] = useState('');
-  const [createBucketOpen, setCreateBucketOpen] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [activeOperations, setActiveOperations] = useState<Set<string>>(new Set());
   const [tabValue, setTabValue] = useState(0);
-  const [totalOperations, setTotalOperations] = useState({ get: 0, put: 0 });
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [emailAuthMode, setEmailAuthMode] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [createBucketOpen, setCreateBucketOpen] = useState(false);
+  const [createBucketName, setCreateBucketName] = useState('');
+  const [createBucketType, setCreateBucketType] = useState<string>('general_purpose');
+  const [createBucketPolicies, setCreateBucketPolicies] = useState('');
+  const [createBucketSubmitting, setCreateBucketSubmitting] = useState(false);
+  const [createBucketError, setCreateBucketError] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeApp = async () => {
       const token = localStorage.getItem('token');
       if (token) {
         setIsLoggedIn(true);
-        await Promise.all([fetchUserInfo(), fetchBuckets(), fetchApiKeys()]);
+        await Promise.all([fetchUserInfo(), fetchBuckets(), fetchUsage(), fetchApiKeys()]);
       }
       setIsLoading(false);
     };
     initializeApp();
   }, []);
+
+  // Refetch buckets and usage when user opens Storage tab so S3 uploads are reflected
+  useEffect(() => {
+    if (!isLoggedIn || currentView !== 'dashboard') return;
+    if (tabValue === 0 || tabValue === 1) {
+      fetchBuckets();
+      fetchUsage();
+    }
+  }, [isLoggedIn, currentView, tabValue]);
 
   const handleError = (error: unknown, defaultMessage: string) => {
     if (error instanceof AxiosError) {
@@ -407,17 +470,50 @@ function App() {
     setTimeout(() => setError(null), 5000);
   };
 
+  const fetchUsage = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get<UsageSummary>(`${process.env.REACT_APP_API_URL}/api/buckets/usage`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUsage(response.data);
+    } catch (err) {
+      console.error('Failed to fetch usage:', err);
+      setUsage({ storage_used: 0, storage_quota: 5 * 1024 ** 3, object_count: 0 });
+    }
+  };
+
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     try {
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/google-login`, {
         token: credentialResponse.credential
       });
-      
       localStorage.setItem('token', response.data.access_token);
       setIsLoggedIn(true);
-      await Promise.all([fetchUserInfo(), fetchBuckets(), fetchApiKeys()]);
+      await Promise.all([fetchUserInfo(), fetchBuckets(), fetchUsage(), fetchApiKeys()]);
     } catch (error) {
       handleError(error, 'Failed to login');
+    }
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const url = emailAuthMode === 'login'
+        ? `${process.env.REACT_APP_API_URL}/api/auth/login`
+        : `${process.env.REACT_APP_API_URL}/api/auth/register`;
+      const payload = emailAuthMode === 'login'
+        ? { email, password }
+        : { email, password, full_name: fullName || email.split('@')[0] };
+      const response = await axios.post(url, payload);
+      localStorage.setItem('token', response.data.access_token);
+      setIsLoggedIn(true);
+      setEmail('');
+      setPassword('');
+      setFullName('');
+      await Promise.all([fetchUserInfo(), fetchBuckets(), fetchUsage(), fetchApiKeys()]);
+    } catch (error) {
+      handleError(error, emailAuthMode === 'login' ? 'Login failed' : 'Registration failed');
     }
   };
 
@@ -436,12 +532,53 @@ function App() {
   const fetchBuckets = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get<Bucket[]>(`${process.env.REACT_APP_API_URL}/api/buckets`, {
+      const response = await axios.get<BucketSummary[]>(`${process.env.REACT_APP_API_URL}/api/buckets`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBuckets(response.data);
     } catch (error) {
       handleError(error, 'Failed to fetch buckets');
+    }
+  };
+
+  const handleCreateBucketOpen = () => {
+    setCreateBucketName('');
+    setCreateBucketType('general_purpose');
+    setCreateBucketPolicies('');
+    setCreateBucketError(null);
+    setCreateBucketOpen(true);
+  };
+
+  const handleCreateBucketSubmit = async () => {
+    setCreateBucketError(null);
+    if (!createBucketName.trim()) {
+      setCreateBucketError('Bucket name is required');
+      return;
+    }
+    setCreateBucketSubmitting(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/buckets`,
+        {
+          name: createBucketName.trim(),
+          type: createBucketType,
+          access_policies: createBucketPolicies.trim() || null,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCreateBucketOpen(false);
+      await fetchBuckets();
+      await fetchUsage();
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        const detail = err.response?.data?.detail;
+        setCreateBucketError(typeof detail === 'string' ? detail : 'Failed to create bucket');
+      } else {
+        setCreateBucketError('Failed to create bucket');
+      }
+    } finally {
+      setCreateBucketSubmitting(false);
     }
   };
 
@@ -458,168 +595,12 @@ function App() {
     }
   };
 
-  const handleCreateBucket = async () => {
-    if (!newBucketName.trim()) {
-      setError('Bucket name cannot be empty');
-      return;
-    }
-
-    const operationKey = `create-bucket-${newBucketName}`;
-    setActiveOperations(prev => new Set(prev).add(operationKey));
-
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/buckets`,
-        {
-          name: newBucketName,
-          owner_id: user?.email || '',
-          objects: [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setCreateBucketOpen(false);
-      setNewBucketName('');
-      await fetchBuckets();
-    } catch (error) {
-      handleError(error, 'Failed to create bucket');
-    } finally {
-      setActiveOperations(prev => {
-        const next = new Set(prev);
-        next.delete(operationKey);
-        return next;
-      });
-    }
-  };
-
-  const handleDeleteBucket = async (bucketName: string) => {
-    const operationKey = `delete-bucket-${bucketName}`;
-    setActiveOperations(prev => new Set(prev).add(operationKey));
-
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(
-        `${process.env.REACT_APP_API_URL}/api/buckets/${bucketName}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      await Promise.all([fetchBuckets(), fetchUserInfo()]);
-    } catch (error) {
-      handleError(error, 'Failed to delete bucket');
-    } finally {
-      setActiveOperations(prev => {
-        const next = new Set(prev);
-        next.delete(operationKey);
-        return next;
-      });
-    }
-  };
-
-  const handleFileUpload = async (bucketName: string, file: File) => {
-    const operationKey = `upload-${bucketName}-${file.name}`;
-    setActiveOperations(prev => new Set(prev).add(operationKey));
-
-    try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('file', file);
-
-      await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/objects/${bucketName}/${file.name}`,
-        formData,
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          },
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total!);
-            setUploadProgress(prev => ({ ...prev, [operationKey]: percentCompleted }));
-          }
-        }
-      );
-      
-      setUploadProgress(prev => {
-        const next = { ...prev };
-        delete next[operationKey];
-        return next;
-      });
-      await Promise.all([fetchBuckets(), fetchUserInfo()]);
-    } catch (error) {
-      handleError(error, 'Failed to upload file');
-    } finally {
-      setActiveOperations(prev => {
-        const next = new Set(prev);
-        next.delete(operationKey);
-        return next;
-      });
-    }
-  };
-
-  const handleDeleteObject = async (bucketName: string, objectKey: string) => {
-    const operationKey = `delete-${bucketName}-${objectKey}`;
-    setActiveOperations(prev => new Set(prev).add(operationKey));
-
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(
-        `${process.env.REACT_APP_API_URL}/api/objects/${bucketName}/${objectKey}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      await Promise.all([fetchBuckets(), fetchUserInfo()]);
-    } catch (error) {
-      handleError(error, 'Failed to delete file');
-    } finally {
-      setActiveOperations(prev => {
-        const next = new Set(prev);
-        next.delete(operationKey);
-        return next;
-      });
-    }
-  };
-
-  const handleDownloadObject = async (bucketName: string, objectKey: string) => {
-    const operationKey = `download-${bucketName}-${objectKey}`;
-    setActiveOperations(prev => new Set(prev).add(operationKey));
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/api/objects/${bucketName}/${objectKey}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: 'blob'
-        }
-      );
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', objectKey);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      handleError(error, 'Failed to download file');
-    } finally {
-      setActiveOperations(prev => {
-        const next = new Set(prev);
-        next.delete(operationKey);
-        return next;
-      });
-    }
-  };
-
   const handleLogout = async () => {
     try {
       localStorage.removeItem('token');
-      
       setUser(null);
       setBuckets([]);
-      setActiveOperations(new Set());
-      setUploadProgress({});
+      setUsage(null);
       setTabValue(0);
       setLogoutDialogOpen(false);
       
@@ -653,12 +634,12 @@ function App() {
   };
 
   const getTotalObjectCount = () => {
-    return buckets.reduce((total, bucket) => total + bucket.objects.length, 0);
+    return usage?.object_count ?? buckets.reduce((total, b) => total + b.object_count, 0);
   };
 
   const getStoragePercentage = () => {
-    if (!user) return 0;
-    return Math.round((user.storage_used / user.storage_quota) * 100);
+    if (!usage || usage.storage_quota <= 0) return 0;
+    return Math.round((usage.storage_used / usage.storage_quota) * 100);
   };
 
   const handleGenerateApiKey = async () => {
@@ -796,15 +777,68 @@ function App() {
               }}>
                 <StorageIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
                 <Typography variant="h5" gutterBottom>
-                  Welcome to Vitality-AI Storage
+                  Welcome to Vitality Console
                 </Typography>
                 <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-                  Secure, scalable object storage for your data needs
+                  Sign in to manage API keys and view usage
                 </Typography>
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => handleError(new Error('Login Failed'), 'Login Failed')}
-                />
+                {error && (
+                  <Alert severity="error" sx={{ width: '100%', mb: 2 }} onClose={() => setError(null)}>
+                    {error}
+                  </Alert>
+                )}
+                <Tabs value={emailAuthMode === 'login' ? 0 : 1} onChange={(_, v) => setEmailAuthMode(v === 0 ? 'login' : 'register')} sx={{ mb: 2 }}>
+                  <Tab label="Log in" />
+                  <Tab label="Register" />
+                </Tabs>
+                <Box component="form" onSubmit={handleEmailSubmit} sx={{ width: '100%', mb: 3 }}>
+                  {emailAuthMode === 'register' && (
+                    <TextField
+                      fullWidth
+                      label="Full name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      margin="normal"
+                      size="small"
+                    />
+                  )}
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    margin="normal"
+                    size="small"
+                  />
+                  <TextField
+                    fullWidth
+                    label="Password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    margin="normal"
+                    size="small"
+                  />
+                  <Button type="submit" fullWidth variant="contained" sx={{ mt: 2 }}>
+                    {emailAuthMode === 'login' ? 'Log in' : 'Register'}
+                  </Button>
+                </Box>
+                {hasGoogleAuth ? (
+                  <>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>or</Typography>
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => handleError(new Error('Login Failed'), 'Login Failed')}
+                    />
+                  </>
+                ) : (
+                  <Alert severity="info" sx={{ width: '100%', mt: 2 }}>
+                    Google sign-in is not set up yet. Please use email above to register or log in.
+                  </Alert>
+                )}
               </Paper>
             ) : (
               currentView === 'dashboard' ? (
@@ -824,7 +858,6 @@ function App() {
                           <Typography variant="h4">{buckets.length}</Typography>
                         </CardContent>
                       </Card>
-
                       <Card>
                         <CardContent>
                           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -834,93 +867,55 @@ function App() {
                           <Typography variant="h4">{getTotalObjectCount()}</Typography>
                         </CardContent>
                       </Card>
-
-                      <Card>
-                        <CardContent>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <CloudDownloadIcon sx={{ color: 'primary.main', mr: 1 }} />
-                            <Typography variant="h6">GET Operations</Typography>
-                          </Box>
-                          <Typography variant="h4">{totalOperations.get}</Typography>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardContent>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <CloudUploadIcon sx={{ color: 'primary.main', mr: 1 }} />
-                            <Typography variant="h6">PUT Operations</Typography>
-                          </Box>
-                          <Typography variant="h4">{totalOperations.put}</Typography>
-                        </CardContent>
-                      </Card>
                     </Box>
                   </Box>
 
-                  {user && (
-                    <Card sx={{ mb: 4 }}>
-                      <CardContent>
-                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4, alignItems: 'center' }}>
-                          <Box sx={{ position: 'relative', width: 120, height: 120 }}>
-                            <CircularProgress
-                              variant="determinate"
-                              value={100}
-                              size={120}
-                              sx={{ 
-                                position: 'absolute',
-                                color: (theme) => theme.palette.grey[200],
-                              }}
-                            />
-                            <CircularProgress
-                              variant="determinate"
-                              value={getStoragePercentage()}
-                              size={120}
-                              sx={{
-                                position: 'absolute',
-                                color: 'primary.main',
-                              }}
-                            />
-                            <Box
-                              sx={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <Typography variant="h6" component="div" color="text.secondary">
-                                {getStoragePercentage()}%
-                              </Typography>
-                            </Box>
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="h6" gutterBottom>
-                              Storage Usage
+                  <Card sx={{ mb: 4 }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4, alignItems: 'center' }}>
+                        <Box sx={{ position: 'relative', width: 120, height: 120 }}>
+                          <CircularProgress
+                            variant="determinate"
+                            value={100}
+                            size={120}
+                            sx={{ position: 'absolute', color: 'rgba(148, 163, 184, 0.2)' }}
+                          />
+                          <CircularProgress
+                            variant="determinate"
+                            value={usage ? getStoragePercentage() : 0}
+                            size={120}
+                            sx={{ position: 'absolute', color: 'primary.main' }}
+                          />
+                          <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Typography variant="h6" component="div" color="text.secondary">
+                              {usage ? `${getStoragePercentage()}%` : '…'}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                              {formatSize(user.storage_used)} used of {formatSize(user.storage_quota)}
-                            </Typography>
-                            <LinearProgress 
-                              variant="determinate" 
-                              value={(user.storage_used / user.storage_quota) * 100}
-                              sx={{ 
-                                height: 8, 
-                                borderRadius: 4,
-                                bgcolor: 'grey.100',
-                                '& .MuiLinearProgress-bar': {
-                                  borderRadius: 4,
-                                }
-                              }}
-                            />
                           </Box>
                         </Box>
-                      </CardContent>
-                    </Card>
-                  )}
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="h6" gutterBottom>Storage Usage (read-only)</Typography>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            {usage
+                              ? `${formatSize(usage.storage_used)} used of ${formatSize(usage.storage_quota)}`
+                              : 'Loading…'}
+                          </Typography>
+                          <LinearProgress
+                            variant="determinate"
+                            value={usage && usage.storage_quota > 0 ? (usage.storage_used / usage.storage_quota) * 100 : 0}
+                            sx={{ height: 8, borderRadius: 4, bgcolor: 'rgba(34, 211, 238, 0.12)', '& .MuiLinearProgress-bar': { borderRadius: 4 } }}
+                          />
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                            Create buckets here; upload files via Warpdrive S3 API.
+                          </Typography>
+                          <Tooltip title="Refresh usage and bucket stats">
+                            <IconButton size="small" onClick={() => { fetchBuckets(); fetchUsage(); }} sx={{ mt: 1 }}>
+                              <RefreshIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
 
                   <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                     <Tabs value={tabValue} onChange={handleTabChange} aria-label="storage tabs">
@@ -931,157 +926,31 @@ function App() {
                   </Box>
 
                   <TabPanel value={tabValue} index={0}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
                       <Typography variant="h6">Your Buckets</Typography>
-                      <Button 
-                        variant="contained" 
-                        startIcon={<AddIcon />}
-                        onClick={() => setCreateBucketOpen(true)}
-                        disabled={activeOperations.size > 0}
-                      >
-                        Create Bucket
+                      <Button variant="contained" onClick={handleCreateBucketOpen} startIcon={<FolderIcon />}>
+                        Create bucket
                       </Button>
                     </Box>
-
                     {buckets.length === 0 ? (
                       <Paper sx={{ p: 4, textAlign: 'center' }}>
-                        <CloudUploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-                        <Typography variant="h6" gutterBottom>
-                          No buckets yet
+                        <FolderIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+                        <Typography variant="h6" gutterBottom>No buckets yet</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Create a bucket here to get started. Object counts and sizes are synced from Warpdrive when you upload via S3.
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          Create your first bucket to start storing files
-                        </Typography>
-                        <Button 
-                          variant="contained" 
-                          startIcon={<AddIcon />}
-                          onClick={() => setCreateBucketOpen(true)}
-                        >
-                          Create Bucket
-                        </Button>
                       </Paper>
                     ) : (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {buckets.map((bucket) => (
                           <Card key={bucket.name}>
                             <CardContent>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                <Typography variant="h6">{bucket.name}</Typography>
-                                <Box>
-                                  <input
-                                    type="file"
-                                    id={`upload-${bucket.name}`}
-                                    style={{ display: 'none' }}
-                                    onChange={(e) => e.target.files && handleFileUpload(bucket.name, e.target.files[0])}
-                                    disabled={activeOperations.has(`upload-${bucket.name}`)}
-                                  />
-                                  <label htmlFor={`upload-${bucket.name}`}>
-                                    <Tooltip title="Upload file">
-                                      <IconButton 
-                                        component="span" 
-                                        color="primary"
-                                        disabled={activeOperations.has(`upload-${bucket.name}`)}
-                                      >
-                                        <UploadIcon />
-                                      </IconButton>
-                                    </Tooltip>
-                                  </label>
-                                  <Tooltip title="Delete bucket">
-                                    <IconButton 
-                                      color="error" 
-                                      onClick={() => handleDeleteBucket(bucket.name)}
-                                      disabled={activeOperations.has(`delete-bucket-${bucket.name}`)}
-                                    >
-                                      <DeleteIcon />
-                                    </IconButton>
-                                  </Tooltip>
-                                </Box>
-                              </Box>
-
-                              {Object.entries(uploadProgress).map(([key, progress]) => {
-                                if (key.startsWith(`upload-${bucket.name}`)) {
-                                  return (
-                                    <Box sx={{ mb: 2 }}>
-                                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                                        Uploading...
-                                      </Typography>
-                                      <LinearProgress 
-                                        key={key}
-                                        variant="determinate" 
-                                        value={progress} 
-                                        sx={{ 
-                                          height: 6, 
-                                          borderRadius: 3,
-                                          bgcolor: 'grey.100',
-                                          '& .MuiLinearProgress-bar': {
-                                            borderRadius: 3,
-                                          }
-                                        }} 
-                                      />
-                                    </Box>
-                                  );
-                                }
-                                return null;
-                              })}
-
-                              {bucket.objects.length === 0 ? (
-                                <Box sx={{ textAlign: 'center', py: 4 }}>
-                                  <Typography variant="body2" color="text.secondary">
-                                    No files in this bucket
-                                  </Typography>
-                                </Box>
-                              ) : (
-                                <List>
-                                  {bucket.objects.map((obj) => (
-                                    <React.Fragment key={obj.key}>
-                                      <ListItem
-                                        secondaryAction={
-                                          <Box>
-                                            <Tooltip title="Download file">
-                                              <IconButton 
-                                                edge="end" 
-                                                onClick={() => handleDownloadObject(bucket.name, obj.key)}
-                                                disabled={activeOperations.has(`download-${bucket.name}-${obj.key}`)}
-                                                sx={{ mr: 1 }}
-                                              >
-                                                {activeOperations.has(`download-${bucket.name}-${obj.key}`) ? (
-                                                  <CircularProgress size={24} />
-                                                ) : (
-                                                  <DownloadIcon />
-                                                )}
-                                              </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Delete file">
-                                              <IconButton 
-                                                edge="end" 
-                                                onClick={() => handleDeleteObject(bucket.name, obj.key)}
-                                                disabled={activeOperations.has(`delete-${bucket.name}-${obj.key}`)}
-                                                color="error"
-                                              >
-                                                {activeOperations.has(`delete-${bucket.name}-${obj.key}`) ? (
-                                                  <CircularProgress size={24} />
-                                                ) : (
-                                                  <DeleteIcon />
-                                                )}
-                                              </IconButton>
-                                            </Tooltip>
-                                          </Box>
-                                        }
-                                      >
-                                        <ListItemText
-                                          primary={obj.key}
-                                          secondary={
-                                            <Typography variant="body2" color="text.secondary">
-                                              {formatSize(obj.size)} • {new Date(obj.created_at).toLocaleString()}
-                                            </Typography>
-                                          }
-                                        />
-                                      </ListItem>
-                                      <Divider />
-                                    </React.Fragment>
-                                  ))}
-                                </List>
-                              )}
+                              <Typography variant="h6">{bucket.name}</Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {bucket.type === 'ai_training' ? 'AI training' : 'General purpose'}
+                                {' • '}
+                                {bucket.object_count} objects • {formatSize(bucket.total_size)}
+                              </Typography>
                             </CardContent>
                           </Card>
                         ))}
@@ -1090,17 +959,16 @@ function App() {
                   </TabPanel>
 
                   <TabPanel value={tabValue} index={1}>
-                    <Typography variant="h6" gutterBottom>
-                      Storage Usage Details
+                    <Typography variant="h6" gutterBottom>Storage Usage Details</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {usage
+                        ? `${formatSize(usage.storage_used)} of ${formatSize(usage.storage_quota)} used • ${usage.object_count} objects`
+                        : 'Loading…'}
                     </Typography>
-                    {/* Add detailed storage usage charts/graphs here */}
                   </TabPanel>
-
                   <TabPanel value={tabValue} index={2}>
-                    <Typography variant="h6" gutterBottom>
-                      Recent Activity
-                    </Typography>
-                    {/* Add activity log/history here */}
+                    <Typography variant="h6" gutterBottom>Activity</Typography>
+                    <Typography variant="body2" color="text.secondary">Activity is tracked in Warpdrive.</Typography>
                   </TabPanel>
                 </Box>
               ) : (
@@ -1116,39 +984,62 @@ function App() {
         </Box>
       </Box>
 
-      <Dialog 
-        open={createBucketOpen} 
-        onClose={() => setCreateBucketOpen(false)}
+      <Dialog
+        open={createBucketOpen}
+        onClose={() => !createBucketSubmitting && setCreateBucketOpen(false)}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Create New Bucket</DialogTitle>
+        <DialogTitle>Create bucket</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Buckets are containers for storing files. Choose a unique name for your bucket.
-          </Typography>
+          {createBucketError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setCreateBucketError(null)}>
+              {createBucketError}
+            </Alert>
+          )}
           <TextField
             autoFocus
             margin="dense"
-            label="Bucket Name"
+            label="Bucket name"
             fullWidth
-            value={newBucketName}
-            onChange={(e) => setNewBucketName(e.target.value)}
-            error={!!newBucketName && !/^[a-z0-9-]+$/.test(newBucketName)}
-            helperText={newBucketName && !/^[a-z0-9-]+$/.test(newBucketName) ? 
-              "Bucket name can only contain lowercase letters, numbers, and hyphens" : ""}
-            sx={{ mt: 1 }}
+            value={createBucketName}
+            onChange={(e) => setCreateBucketName(e.target.value)}
+            placeholder="e.g. my-data"
+            helperText="3–63 characters, lowercase letters, numbers, hyphens or dots"
+          />
+          <FormControl fullWidth margin="dense" sx={{ mt: 2 }}>
+            <InputLabel id="create-bucket-type-label">Bucket type</InputLabel>
+            <Select
+              labelId="create-bucket-type-label"
+              label="Bucket type"
+              value={createBucketType}
+              onChange={(e) => setCreateBucketType(e.target.value)}
+            >
+              <MenuItem value="general_purpose">General purpose storage</MenuItem>
+              <MenuItem value="ai_training">AI training</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            margin="dense"
+            label="Access policies (optional)"
+            fullWidth
+            multiline
+            minRows={2}
+            value={createBucketPolicies}
+            onChange={(e) => setCreateBucketPolicies(e.target.value)}
+            placeholder='JSON e.g. {"read": ["*"]}'
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={() => setCreateBucketOpen(false)}>Cancel</Button>
-          <Button 
-            onClick={handleCreateBucket} 
-            variant="contained" 
-            color="primary"
-            disabled={!newBucketName.trim() || !/^[a-z0-9-]+$/.test(newBucketName)}
+          <Button onClick={() => setCreateBucketOpen(false)} disabled={createBucketSubmitting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreateBucketSubmit}
+            variant="contained"
+            disabled={createBucketSubmitting}
           >
-            Create Bucket
+            {createBucketSubmitting ? 'Creating…' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>

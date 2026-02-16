@@ -1,87 +1,86 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
-from core.database import get_database
+"""Bucket and usage endpoints. Bucket metadata from Console DB; stats from Warpdrive."""
+import re
+from datetime import datetime
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from services.auth import auth_service
-from services.storage import storage
+from services.default_bucket import ensure_default_bucket
+from services.storage_usage_provider import (
+    storage_usage_provider,
+    BucketSummary,
+    UsageSummary,
+)
 from models.user import User
-from models.bucket import Bucket
+from core.database import get_bucket_repo
 
 router = APIRouter()
 
-@router.get("/", response_model=List[Bucket])
+# S3 bucket name rules: 3-63 chars, lowercase/numbers/hyphens, no double hyphen
+BUCKET_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$")
+BUCKET_TYPES = ("general_purpose", "ai_training")
+
+
+def _validate_bucket_name(name: str) -> None:
+    if not name or len(name) < 3 or len(name) > 63:
+        raise HTTPException(400, "Bucket name must be 3-63 characters")
+    if ".." in name or name.startswith(".") or name.endswith("."):
+        raise HTTPException(400, "Bucket name cannot contain consecutive dots or start/end with a dot")
+    if "--" in name or name.startswith("-") or name.endswith("-"):
+        raise HTTPException(400, "Bucket name cannot contain consecutive hyphens or start/end with a hyphen")
+    if not BUCKET_NAME_PATTERN.match(name):
+        raise HTTPException(400, "Bucket name must be lowercase letters, numbers, hyphens, or dots only")
+
+
+class CreateBucketRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    type: str = Field(default="general_purpose", description="general_purpose or ai_training")
+    access_policies: Optional[str] = None
+
+
+class BucketCreated(BaseModel):
+    name: str
+    type: str
+    access_policies: Optional[str]
+    created_at: str
+
+
+@router.get("/", response_model=list[BucketSummary])
 async def list_buckets(
     current_user: User = Depends(auth_service.get_current_user),
-    db = Depends(get_database)
 ):
-    """List all buckets owned by the current user."""
-    buckets_data = await db["buckets"].find({
-        "owner_id": current_user.email
-    }).to_list(None)
-    return [Bucket.from_mongo(bucket) for bucket in buckets_data]
+    """List buckets for the current user (from Console DB, enriched with Warpdrive stats)."""
+    await ensure_default_bucket(current_user.email)
+    return await storage_usage_provider.list_buckets(current_user.email)
 
-@router.post("/", response_model=Bucket)
+
+@router.post("/", response_model=BucketCreated, status_code=201)
 async def create_bucket(
-    bucket: Bucket,
+    body: CreateBucketRequest,
     current_user: User = Depends(auth_service.get_current_user),
-    db = Depends(get_database)
 ):
-    """Create a new bucket."""
-    # Check if bucket with same name already exists for this user
-    existing_bucket = await db["buckets"].find_one({
-        "name": bucket.name,
-        "owner_id": current_user.email
+    """Create a bucket (metadata in Console only)."""
+    _validate_bucket_name(body.name)
+    if body.type not in BUCKET_TYPES:
+        raise HTTPException(400, f"type must be one of: {', '.join(BUCKET_TYPES)}")
+    repo = get_bucket_repo()
+    existing = await repo.get_by_owner_and_name(current_user.email, body.name)
+    if existing:
+        raise HTTPException(409, "A bucket with this name already exists")
+    now = datetime.utcnow().isoformat()
+    await repo.create({
+        "bucket_name": body.name,
+        "owner_id": current_user.email,
+        "access_policies": body.access_policies,
+        "type": body.type,
+        "created_at": now,
     })
-    if existing_bucket:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Bucket with this name already exists"
-        )
-    
-    # Create bucket in storage with user's email as ID
-    await storage.create_bucket(current_user.email, bucket.name)
-    
-    # Set owner and create bucket in database
-    bucket.owner_id = current_user.email
-    bucket_data = bucket.to_mongo()
-    await db["buckets"].insert_one(bucket_data)
-    
-    return bucket
+    return BucketCreated(name=body.name, type=body.type, access_policies=body.access_policies, created_at=now)
 
-@router.delete("/{bucket_name}")
-async def delete_bucket(
-    bucket_name: str,
+
+@router.get("/usage", response_model=UsageSummary)
+async def get_usage(
     current_user: User = Depends(auth_service.get_current_user),
-    db = Depends(get_database)
 ):
-    """Delete a bucket and all its contents."""
-    # Check if bucket exists and user has permission
-    bucket_data = await db["buckets"].find_one({
-        "name": bucket_name,
-        "owner_id": current_user.email
-    })
-    if not bucket_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Bucket not found or you don't have permission"
-        )
-    
-    bucket = Bucket.from_mongo(bucket_data)
-    
-    # Update user's storage usage
-    total_size = sum(obj.size for obj in bucket.objects)
-    if total_size > 0:
-        await db["users"].update_one(
-            {"email": current_user.email},
-            {"$inc": {"storage_used": -total_size}}
-        )
-    
-    # Delete bucket from storage using user's email as ID
-    await storage.delete_bucket(current_user.email, bucket_name)
-    
-    # Delete bucket from database
-    await db["buckets"].delete_one({
-        "name": bucket_name,
-        "owner_id": current_user.email
-    })
-    
-    return {"message": "Bucket deleted successfully"} 
+    """Get storage usage for the current user (read-only; data from Warpdrive)."""
+    return await storage_usage_provider.get_usage(current_user.email)
