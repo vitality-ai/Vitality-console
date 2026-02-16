@@ -1,6 +1,6 @@
 # Vitality Console
 
-Auth and API key management for Vitality. Users can sign in with Google or email/password, manage API keys, and view read-only storage usage (data provided by Warpdrive). Bucket and object write operations (create bucket, upload, delete) are handled by **Warpdrive**; this app is the single source of truth for users and keys.
+Auth and API key management for Vitality. Users sign in with **Google** (optional) or **email/password**, manage API keys, and view buckets with read-only storage stats. **Buckets** are created and owned here (source of truth); **object storage** (upload/delete) is done via **Warpdrive**’s S3-compatible API. Storage usage (object count, size per bucket) is fetched from Warpdrive when configured.
 
 ## How to start
 
@@ -13,11 +13,7 @@ source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Create `backend/.env` with at least:
-
-```env
-secret_key=any-secure-random-string
-```
+Create `backend/.env` with at least `secret_key=any-secure-random-string`. Optional: `DATABASE_PATH`, Google OAuth vars, and Warpdrive vars (see [Backend Setup](#backend-setup) and [Warpdrive integration](#warpdrive-integration-optional)).
 
 Then:
 
@@ -32,11 +28,7 @@ cd frontend
 npm install
 ```
 
-Create `frontend/.env` with:
-
-```env
-REACT_APP_API_URL=http://localhost:8000
-```
+Create `frontend/.env` with `REACT_APP_API_URL=http://localhost:8000`. Optional: `REACT_APP_GOOGLE_CLIENT_ID` for Google sign-in (see [Frontend Setup](#frontend-setup)).
 
 Then:
 
@@ -47,7 +39,7 @@ npm start
 - **App:** http://localhost:3000  
 - **API:** http://localhost:8000  
 
-If you don’t set up Google OAuth (`google_client_id` in backend and `REACT_APP_GOOGLE_CLIENT_ID` in frontend), the console still runs: the login page will say *"Google sign-in is not set up yet. Please use email above to register or log in."* and users can register and log in with email only.
+**Google sign-in** is optional; if not configured, the login page shows email-only sign-in.
 
 ## Prerequisites
 
@@ -79,7 +71,7 @@ cd backend
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file in the backend directory:
+4. Create a `.env` file in the backend directory (see `backend/.env.example`):
 
 ```env
 DATABASE_PATH=./data/vitality.db
@@ -93,9 +85,17 @@ google_client_id=your_google_client_id
 google_client_secret=your_google_client_secret
 ```
 
+Optional (for storage stats from Warpdrive):
+
+```env
+WARPDRIVE_URL=http://localhost:9710
+WARPDRIVE_SERVICE_SECRET=your_shared_secret
+```
+
 - **DATABASE_PATH**: Path to the SQLite database file (default: `./data/vitality.db`).
 - **secret_key**: Required; used for JWT signing; keep secure.
-- **google_client_id** / **google_client_secret**: Optional. Omit to run with email-only sign-in; the UI will prompt users to use email.
+- **google_client_id** / **google_client_secret**: Optional. Omit to run with email-only sign-in.
+- **WARPDRIVE_URL** / **WARPDRIVE_SERVICE_SECRET**: Optional. When set, bucket list and usage show object count and size from Warpdrive; same secret must be set in Warpdrive’s `.env`.
 
 ## Frontend Setup
 
@@ -110,18 +110,64 @@ npm install
 
 ```env
 REACT_APP_API_URL=http://localhost:8000
+```
+
+Optional (for Google sign-in):
+
+```env
 REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
-`REACT_APP_GOOGLE_CLIENT_ID` is only needed for Google sign-in.
+---
 
 ## Google OAuth Setup (optional)
 
+Google sign-in is **optional**. You can run the app with email/password only: omit the Google-related env vars and the login page will show *"Google sign-in is not set up yet. Please use email above to register or log in."* Users can register and log in with email only.
+
+If you want to enable Google sign-in, follow these steps.
+
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a project and enable the Google OAuth2 API
-3. Configure the OAuth consent screen and create OAuth client credentials (Web application)
-4. Add authorized JavaScript origins and redirect URIs (e.g. `http://localhost:3000`)
-5. Copy the Client ID and Client Secret into the backend and frontend `.env` files
+2. Create a new project or select an existing one
+3. Enable the Google OAuth2 API:
+   - Go to "APIs & Services" > "Library"
+   - Search for "Google OAuth2"
+   - Click "Enable"
+4. Configure OAuth consent screen:
+   - Go to "APIs & Services" > "OAuth consent screen"
+   - Choose "External" user type
+   - Fill in required information (app name, user support email, developer contact)
+   - Add necessary scopes (email, profile)
+5. Create OAuth credentials:
+   - Go to "APIs & Services" > "Credentials"
+   - Click "Create Credentials" > "OAuth client ID"
+   - Choose "Web application"
+   - Add authorized JavaScript origins:
+     ```
+     http://localhost:3000
+     ```
+   - Add authorized redirect URIs:
+     ```
+     http://localhost:3000
+     http://localhost:3000/auth/google/callback
+     ```
+     (Add production URLs when you deploy.)
+6. Copy the **Client ID** and **Client Secret** into your env files:
+   - **Backend** `backend/.env`: `google_client_id=...` and `google_client_secret=...`
+   - **Frontend** `frontend/.env`: `REACT_APP_GOOGLE_CLIENT_ID=...`
+7. Restart the backend and frontend. The login page will show the Google sign-in button.
+
+---
+
+## Warpdrive integration (optional)
+
+To show **object count and total size** per bucket in the Console UI:
+
+1. Run **Warpdrive** with Vitality Console auth (see Warpdrive’s README): set `VITALITY_CONSOLE_URL` and `WARPDRIVE_SERVICE_SECRET` in Warpdrive’s `.env`.
+2. In Console **backend** `.env`, set:
+   - `WARPDRIVE_URL` – e.g. `http://localhost:9710`
+   - `WARPDRIVE_SERVICE_SECRET` – same value as in Warpdrive
+
+Console then calls Warpdrive `GET /s3` with the logged-in user’s API key and merges stats into the bucket list and usage. If these are unset, buckets still appear but with zero object count/size.
 
 ## Running the Application
 
@@ -145,12 +191,11 @@ npm start
 
 ## Features
 
-- **Auth**: Google sign-in and email/password (register and login)
-- **API keys**: Generate and delete API keys; list keys (no secret after creation)
-- **Read-only usage**: View buckets and storage usage; data is provided by the Warpdrive service (stub until Warpdrive implements the API)
-- **S3 auth**: Warpdrive calls `POST /api/auth/s3-credentials` (with `X-Warpdrive-Secret`) to get credentials and verifies request signatures (SigV4) locally
-
-Bucket and object creation, uploads, and deletes are done in **Warpdrive**, not in this app.
+- **Auth**: Google sign-in (optional) and email/password (register and login)
+- **API keys**: Generate and delete API keys; list keys (secret shown only at creation). Keys are used to sign S3 requests to Warpdrive.
+- **Buckets**: Create and list buckets (source of truth in Console). When Warpdrive is configured, the UI shows object count and total size per bucket from Warpdrive.
+- **Storage usage**: Read-only view of storage used and object count; data comes from Warpdrive when `WARPDRIVE_URL` and `WARPDRIVE_SERVICE_SECRET` are set.
+- **S3 auth**: Warpdrive calls `POST /api/auth/s3-credentials` (with `X-Warpdrive-Secret`) to resolve an API key to the user’s secret and then verifies SigV4 locally. Object uploads and deletes go to Warpdrive’s S3 API, not to Console.
 
 ## Development
 
