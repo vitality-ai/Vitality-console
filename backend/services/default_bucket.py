@@ -1,4 +1,9 @@
-"""Ensure every user has a 'default' bucket (created on first use if missing)."""
+"""
+Create the `default` bucket for a new account.
+
+Only called from **registration** flows in ``routers/auth`` (email register and first-time
+Google login). Other endpoints read the ``buckets`` table as-is.
+"""
 from datetime import datetime
 
 from core.database import get_bucket_repo

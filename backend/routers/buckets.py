@@ -5,7 +5,6 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from services.auth import auth_service
-from services.default_bucket import ensure_default_bucket
 from services.storage_usage_provider import (
     storage_usage_provider,
     BucketSummary,
@@ -50,7 +49,6 @@ async def list_buckets(
     current_user: User = Depends(auth_service.get_current_user),
 ):
     """List buckets for the current user (from Console DB, enriched with Warpdrive stats)."""
-    await ensure_default_bucket(current_user.email)
     return await storage_usage_provider.list_buckets(current_user.email)
 
 

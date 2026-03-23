@@ -167,7 +167,7 @@ To show **object count and total size** per bucket in the Console UI:
    - `WARPDRIVE_URL` – e.g. `http://localhost:9710`
    - `WARPDRIVE_SERVICE_SECRET` – same value as in Warpdrive
 
-Console then calls Warpdrive `GET /s3` with the logged-in user’s API key and merges stats into the bucket list and usage. If these are unset, buckets still appear but with zero object count/size.
+Console then calls Warpdrive `GET /s3` (S3 **ListBuckets** XML response) with the logged-in user’s API key and merges stats into the bucket list and usage. If these are unset, buckets still appear but with zero object count/size.
 
 ## Running the Application
 
@@ -195,7 +195,7 @@ npm start
 - **API keys**: Generate and delete API keys; list keys (secret shown only at creation). Keys are used to sign S3 requests to Warpdrive.
 - **Buckets**: Create and list buckets (source of truth in Console). When Warpdrive is configured, the UI shows object count and total size per bucket from Warpdrive.
 - **Storage usage**: Read-only view of storage used and object count; data comes from Warpdrive when `WARPDRIVE_URL` and `WARPDRIVE_SERVICE_SECRET` are set.
-- **S3 auth**: Warpdrive calls `POST /api/auth/s3-credentials` (with `X-Warpdrive-Secret`) to resolve an API key to the user’s secret and then verifies SigV4 locally. Object uploads and deletes go to Warpdrive’s S3 API, not to Console.
+- **S3 auth**: Warpdrive calls `POST /api/auth/s3-credentials` (with `X-Warpdrive-Secret` and, for bucket-scoped requests, the bucket name) to resolve an API key and confirm the bucket exists in Console; then it verifies SigV4 locally. Object uploads and deletes go to Warpdrive’s S3 API, not to Console.
 
 ## Development
 
